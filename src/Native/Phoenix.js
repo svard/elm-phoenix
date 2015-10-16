@@ -9,9 +9,9 @@ Elm.Native.Phoenix.make = function(localRuntime) {
   var Signal = Elm.Native.Signal.make (localRuntime);
   var Task = Elm.Native.Task.make (localRuntime);
   var Utils = Elm.Native.Utils.make (localRuntime);
-  var socket;
+  var socket, chan;
 
-  function socket(endPoint) {
+  function newSocket(endPoint) {
     return socket || new Phoenix.Socket(endPoint);
   }
 
@@ -25,7 +25,7 @@ Elm.Native.Phoenix.make = function(localRuntime) {
     });
   }
 
-  function attemptconnection(socket, callback) {
+  function attemptConnection(socket, callback) {
     socket.onOpen(function () {
       callback(Task.succeed(socket));
     });
@@ -33,18 +33,23 @@ Elm.Native.Phoenix.make = function(localRuntime) {
   }
 
   function channel(topic, socket) {
-    return socket.channel(topic, {});
+    chan = chan || socket.channel(topic, {});
+    return chan;
   }
 
   function join(channel) {
     return Task.asyncFunction(function(callback){
-      channel.join()
-      .receive("ok", function () {
-        callback(Task.succeed(Utils.Tuple0));
-      })
-      .receive("error", function (resp) {
-        callback(Task.fail(resp));
-      });
+      if (channel.joinedOnce) {
+        callback(Task.succeed(channel));
+      } else {
+        channel.join()
+        .receive("ok", function () {
+          callback(Task.succeed(channel));
+        })
+        .receive("error", function (resp) {
+          callback(Task.fail(resp));
+        });
+      }
     });
   }
 
@@ -53,8 +58,13 @@ Elm.Native.Phoenix.make = function(localRuntime) {
       if (!channel.canPush) {
         return callback(Task.fail("Can't push"));
       }
-      channel.push(topic, payload);
-      callback(Task.succeed(Utils.Tuple0));
+      try {
+        channel.push(topic, JSON.parse(payload));
+        callback(Task.succeed(Utils.Tuple0));
+      }
+      catch (e) {
+        callback(Task.fail("Failed to parse JSON"));
+      }
     });
   }
 
@@ -71,10 +81,10 @@ Elm.Native.Phoenix.make = function(localRuntime) {
   }
 
   localRuntime.Native.Phoenix.values = {
-    socket: F1(socket),
-    connect: F1(connect),
+    socket: newSocket,
+    connect: connect,
     channel: F2(channel),
-    join: F1(join),
+    join: join,
     push: F3(push),
     on: F3(on)
   };
