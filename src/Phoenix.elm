@@ -1,4 +1,17 @@
-module Phoenix (socket, connect, channel, join, push, on, Socket, Channel) where
+module Phoenix 
+  ( defaultSocketParams
+  , socket
+  , connect
+  , channel
+  , join
+  , push
+  , on
+  , Socket
+  , Channel
+  , Transport
+  , SocketParams
+  , Transport(..)
+  ) where
 
 {-| Docs 
 @docs Socket, Channel, socket, channel, connect, join, push, on 
@@ -12,8 +25,29 @@ type Socket = Socket
 {-| Channel -}
 type Channel = Channel
 
+type Transport
+  = WebSocket
+  | LongPoll
+
+{-| SocketParams -}
+type alias SocketParams =
+  { transport : Transport
+  , heartbeatInterval : Int
+  , reconnectAfter : Int
+  , longpollerTimeout : Int
+  }
+
+{-| defaultsocketparams -}
+defaultSocketParams : SocketParams
+defaultSocketParams = 
+  { transport = WebSocket
+  , heartbeatInterval = 30000
+  , reconnectAfter = 10000
+  , longpollerTimeout = 20000
+  }
+
 {-| socket -}
-socket : String -> Socket
+socket : String -> SocketParams -> Socket
 socket = Native.Phoenix.socket
 
 {-| connect -}
@@ -21,11 +55,11 @@ connect : Socket -> Task.Task x Socket
 connect = Native.Phoenix.connect
 
 {-| channel -}
-channel : String -> Socket -> Channel
+channel : String -> Socket -> Task.Task x Channel
 channel = Native.Phoenix.channel
 
 {-| join -}
-join : Channel -> Task.Task x Channel
+join : Signal.Address String -> Channel -> Task.Task x Channel
 join = Native.Phoenix.join
 
 {-| push -}
