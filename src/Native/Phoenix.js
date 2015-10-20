@@ -6,7 +6,6 @@ Elm.Native.Phoenix.make = function(localRuntime) {
     return localRuntime.Native.Phoenix.values;
   }
 
-  var Signal = Elm.Native.Signal.make (localRuntime);
   var Task = Elm.Native.Task.make (localRuntime);
   var Utils = Elm.Native.Utils.make (localRuntime);
   var socket, chan;
