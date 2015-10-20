@@ -29,7 +29,7 @@ app =
     { init = init
     , update = update
     , view = view
-    , inputs = [ Signal.map (decodeMessage >> Result.toMaybe) mailbox.signal |> Signal.map NewMsg ]
+    , inputs = [ incoming ]
     }
 
 main =
