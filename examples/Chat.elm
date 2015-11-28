@@ -41,7 +41,7 @@ update action model =
     NewMsg maybeMsg ->
       case maybeMsg of
         Just msg ->
-          ( { model | receivedMsgs <- msg :: model.receivedMsgs }
+          ( { model | receivedMsgs = msg :: model.receivedMsgs }
           , Effects.none
           )
 
@@ -49,7 +49,7 @@ update action model =
           (model, Effects.none)
 
     Update str ->
-      ( { model | outgoingMsg <- str }
+      ( { model | outgoingMsg = str }
       , Effects.none
       )
 
