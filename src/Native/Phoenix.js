@@ -44,24 +44,27 @@ Elm.Native.Phoenix.make = function(localRuntime) {
     socket.connect();
   }
 
-  function channel(topic, socket) {
+  function channel(topic, address, socket) {
     return Task.asyncFunction(function(callback){
       chan = chan || socket.channel(topic, {});
-      callback(Task.succeed(chan));
+      callback(Task.succeed({
+        address: address,
+        chan: chan
+      }));
     });
   }
 
-  function join(address, channel) {
+  function join(channel) {
     return Task.asyncFunction(function(callback){
-      if (channel.joinedOnce) {
+      if (channel.chan.joinedOnce) {
         callback(Task.succeed(channel));
       } else {
-        channel.join()
+        channel.chan.join()
         .receive("ok", function (payload) {
           if (typeof payload !== "string") {
             payload = JSON.stringify(payload) || "";
           }
-          Task.perform(address._0(payload));
+          Task.perform(channel.address._0(payload));
           callback(Task.succeed(channel));
         })
         .receive("error", function (resp) {
@@ -71,13 +74,26 @@ Elm.Native.Phoenix.make = function(localRuntime) {
     });
   }
 
-  function push(topic, payload, channel) {
+  function leave(channel) {
     return Task.asyncFunction(function(callback){
-      if (!channel.canPush) {
+      channel.chan.leave()
+      .receive("ok", function () {
+        chan = null;
+        callback(Task.succeed(Utils.Tuple0));
+      })
+      .receive("error", function (resp) {
+        callback(Task.fail(resp));
+      });
+    });
+  }
+
+  function push(event, payload, channel) {
+    return Task.asyncFunction(function(callback){
+      if (!channel.chan.canPush) {
         return callback(Task.fail("Failed to push message"));
       }
       try {
-        channel.push(topic, JSON.parse(payload));
+        channel.chan.push(event, JSON.parse(payload));
         callback(Task.succeed(Utils.Tuple0));
       }
       catch (e) {
@@ -86,14 +102,21 @@ Elm.Native.Phoenix.make = function(localRuntime) {
     });
   }
 
-  function on(topic, address, channel) {
+  function on(event, channel) {
     return Task.asyncFunction(function(callback){
-      channel.on(topic, function (payload) {
+      channel.chan.on(event, function (payload) {
         if (typeof payload !== "string") {
           payload = JSON.stringify(payload) || "";
         }
-        Task.perform(address._0(payload));
+        Task.perform(channel.address._0(payload));
       });
+      callback(Task.succeed(Utils.Tuple0));
+    });
+  }
+
+  function off(event, channel) {
+    return Task.asyncFunction(function(callback){
+      channel.chan.off(event);
       callback(Task.succeed(Utils.Tuple0));
     });
   }
@@ -101,10 +124,12 @@ Elm.Native.Phoenix.make = function(localRuntime) {
   localRuntime.Native.Phoenix.values = {
     socket: F2(newSocket),
     connect: connect,
-    channel: F2(channel),
-    join: F2(join),
+    channel: F3(channel),
+    join: join,
+    leave: leave,
     push: F3(push),
-    on: F3(on)
+    on: F2(on),
+    off: F2(off)
   };
   
   return localRuntime.Native.Phoenix.values;

@@ -1,6 +1,6 @@
 {
-    "version": "1.0.0",
-    "summary": "helpful summary of your project, less than 80 characters",
+    "version": "2.0.0",
+    "summary": "Elixir Phoenix channels in Elm",
     "repository": "https://github.com/svard/elm-phoenix.git",
     "license": "BSD3",
     "source-directories": [

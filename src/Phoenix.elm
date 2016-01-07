@@ -4,8 +4,11 @@ module Phoenix
   , connect
   , channel
   , join
+  , leave
   , push
   , on
+  , off
+  , joinChannel
   , Socket
   , Channel
   , SocketOptions
@@ -21,14 +24,21 @@ module Phoenix
 @docs push, on
 -}
 
-import Task
+import Task exposing (Task, andThen)
 import Native.Phoenix
 
 {-| Socket -}
 type Socket = Socket
-{-| Channel -}
-type Channel = Channel
 
+{-| Channel, Phoenix bidirectional communication abstraction.
+  * all messages received over this channel will be delivered to the specified Address
+  * no operations are supported directly on the NativeChannel -}
+type alias Channel =
+  { address : Signal.Address String
+  , chan : NativeChannel
+  }
+
+type NativeChannel = NativeChannel
 type alias Topic = String
 type alias Event = String
 type alias EndPoint = String
@@ -74,27 +84,44 @@ socket = Native.Phoenix.socket
 
 {-| Attempt to connect to the server.
  -}
-connect : Socket -> Task.Task x Socket
+connect : Socket -> Task x Socket
 connect = Native.Phoenix.connect
 
-{-| Create a channel with a given topic over the socket.
+{-| Create a channel with a given topic over the socket. All messages received over
+this channel will be delivered to the specified address.
 -}
-channel : Topic -> Socket -> Task.Task x Channel
+channel : Topic -> Signal.Address String -> Socket -> Task x Channel
 channel = Native.Phoenix.channel
 
-{-| Attempt to join the given channel. Messages sent by the server on a
-successful join will be delivered to the specified address.
+{-| Attempt to join the given channel.
 -}
-join : Signal.Address String -> Channel -> Task.Task x Channel
+join : Channel -> Task x Channel
 join = Native.Phoenix.join
+
+{-| Leaves the given channel.
+-}
+leave : Channel -> Task x ()
+leave = Native.Phoenix.leave
 
 {-| Pushes a message over the channel to the server as event.
  -}
-push : Event -> String -> Channel -> Task.Task x ()
+push : Event -> String -> Channel -> Task x ()
 push = Native.Phoenix.push
 
-{-| Subscribes to event on the channel. Received messages will be delivered to
-the specified address.
+{-| Subscribes to event on the channel.
 -}
-on : Event -> Signal.Address String -> Channel -> Task.Task x ()
+on : Event -> Channel -> Task x ()
 on = Native.Phoenix.on
+
+{-| Unsubscribes to event on the channel.
+-}
+off : Event -> Channel -> Task x ()
+off = Native.Phoenix.off
+
+{-| Utility function. Connects to the server, creates a channel and joins a topic on the created channel.
+-}
+joinChannel : Socket -> Topic -> Signal.Address String -> Task x Channel
+joinChannel socket topic address =
+  connect socket 
+    `andThen` channel topic address 
+    `andThen` join

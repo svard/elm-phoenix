@@ -104,22 +104,12 @@ event = "new_msg"
 topic : String
 topic = "rooms:lobby"
 
-connect : Task x Phoenix.Socket
-connect =
-  Phoenix.socket "/socket" Phoenix.defaultSocketOptions
-    |> Phoenix.connect
-
-join : Signal.Address String -> Phoenix.Socket -> Task x Phoenix.Channel
-join address socket =
-  Phoenix.channel topic socket `andThen` Phoenix.join address
-
-joinChannel : Signal.Address String -> Task x Phoenix.Channel
-joinChannel address =
-  connect `andThen` join address
-
 channel : Task x Phoenix.Channel
 channel =
-  connect `andThen` Phoenix.channel topic
+  let socket = 
+        Phoenix.socket "/socket" Phoenix.defaultSocketOptions
+  in
+    Phoenix.joinChannel socket topic mailbox.address
 
 push : Message -> Effects Action
 push msg =
@@ -137,7 +127,6 @@ encodeMessage {body} =
   Encode.encode 0 <| Encode.object
           [ ("body", Encode.string body) ]
 
-
 mailbox : Signal.Mailbox String
 mailbox = 
   Signal.mailbox ""
@@ -149,7 +138,7 @@ incoming =
 
 port subscribe : Task x ()
 port subscribe =
-  joinChannel mailbox.address `andThen` Phoenix.on event mailbox.address
+  channel `andThen` Phoenix.on event
 
 port tasks : Signal (Task Never ())
 port tasks =
