@@ -1,6 +1,8 @@
 # elm-phoenix
 Native Phoenix channels in Elm
 
+Consider [http://package.elm-lang.org/packages/NoRedInk/elm-phoenix/1.0.0/](http://package.elm-lang.org/packages/NoRedInk/elm-phoenix/1.0.0/) instead for Elm 0.17 Phoenix integration.
+
 An implementation of [Phoenix](http://www.phoenixframework.org) channels in Elm inspired by mgold's [elm-socketio](https://github.com/mgold/elm-socketio).
 
 The Chat example in the context of a Phoenix app can be found here https://github.com/svard/hello_phoenix.
